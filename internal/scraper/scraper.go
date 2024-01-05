@@ -22,26 +22,82 @@ var ErrMissingTarget = errors.New("Missing Target")
 var ErrMethodNotAllowed = errors.New("Method not allowed")
 var ErrMissingSeperator = errors.New("Target is missing seperator")
 
+type CanDoRollback interface {
+	CanDoRollback() bool
+	DoRollback() error
+}
+
+type Rollbackable interface {
+	Rollback() error
+}
+
+type ErrMissingTargetType struct {
+	OriginalMethod string
+	InnerStruct    Rollbackable
+}
+
+func (e *ErrMissingTargetType) GetAllowedMethods() map[string]bool {
+	return ALLOWED_METHODS
+}
+
+func (e *ErrMissingTargetType) GetOriginalMethod() string {
+	return e.OriginalMethod
+}
+
+func (e *ErrMissingTargetType) Error() string {
+	return ErrMissingTarget.Error()
+}
+
+func (e *ErrMissingTargetType) Is(target error) bool {
+	t, ok := target.(*ErrMissingTargetType)
+
+	if !ok {
+		return false
+	}
+
+	return t.GetOriginalMethod() == e.GetOriginalMethod()
+}
+
+func (e *ErrMissingTargetType) CanDoRollback() bool {
+	return true
+}
+
+func (e *ErrMissingTargetType) DoRollback() error {
+	return e.InnerStruct.Rollback()
+}
+
 type Target struct {
 	Method string
 	Url    string
 }
 
+type User struct {
+	name string
+}
+
+func (u *User) Rollback() error {
+	return nil
+}
+
 func ConvertToTarget(inc string) (*Target, error) {
 
+	obj := User{"miguel"}
+
 	if inc == "" {
-		return nil, fmt.Errorf("Missing target, %w", ErrMissingTarget)
+		return nil, &ErrMissingTargetType{
+			InnerStruct: &obj,
+		}
 	}
 
 	if !strings.Contains(inc, TARGET_SEPERATOR) {
-		return nil, fmt.Errorf("Invalid target, missing %s, %w", TARGET_SEPERATOR, ErrMissingSeperator)
+		return nil, fmt.Errorf("invalid target, missing %s, %w", TARGET_SEPERATOR, ErrMissingSeperator)
 	}
 
 	method := strings.Split(inc, TARGET_SEPERATOR)[0]
 	url := strings.Join(strings.Split(inc, TARGET_SEPERATOR)[1:], TARGET_SEPERATOR)
 
 	if _, found := ALLOWED_METHODS[method]; !found {
-		return nil, fmt.Errorf("Method %s, is not accepted %w", method, ErrMethodNotAllowed)
+		return nil, fmt.Errorf("method %s, is not accepted %w", method, ErrMethodNotAllowed)
 	}
 
 	return &Target{

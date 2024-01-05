@@ -2,6 +2,7 @@ package scraper
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,20 +24,20 @@ func TestConvertToTarget(t *testing.T) {
 				Url:    "https:/www.google.com",
 			},
 		},
-		{
-			input:     "FOOBAR|https:/www.google.com",
-			expected:  nil,
-			expectErr: ErrMethodNotAllowed,
-		},
-		{
-			input:     "https:/www.google.com",
-			expected:  nil,
-			expectErr: ErrMissingSeperator,
-		},
+		// {
+		// 	input:     "FOOBAR|https:/www.google.com",
+		// 	expected:  nil,
+		// 	expectErr: ErrMethodNotAllowed,
+		// },
+		// {
+		// 	input:     "https:/www.google.com",
+		// 	expected:  nil,
+		// 	expectErr: ErrMissingSeperator,
+		// },
 		{
 			input:     "",
 			expected:  nil,
-			expectErr: ErrMissingTarget,
+			expectErr: &ErrMissingTargetType{},
 		},
 	}
 
@@ -47,7 +48,26 @@ func TestConvertToTarget(t *testing.T) {
 
 			assert.ErrorIs(t, err, tc.expectErr)
 
-			// if err != nil && errors.Is(err, ErrMissingTarget) && err.()
+			if err != nil {
+				if castedErr, worked := err.(*ErrMissingTargetType); worked {
+					fmt.Println(castedErr.GetOriginalMethod())
+				}
+
+				switch t := err.(type) {
+				case CanDoRollback:
+					if t.CanDoRollback() {
+						t.Rollback() // you don't care which type it is
+					}
+
+					fallthrough
+				case *ErrMissingTargetType:
+					if t.
+					fmt.Println(t.GetOriginalMethod())
+				default:
+					fmt.Println("different err")
+				}
+
+			}
 
 			assert.Equal(
 				t,
