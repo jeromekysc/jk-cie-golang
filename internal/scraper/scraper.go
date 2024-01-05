@@ -1,10 +1,10 @@
 package scraper
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"slices"
 	"strings"
 )
 
@@ -12,7 +12,15 @@ const (
 	TARGET_SEPERATOR = "|"
 )
 
-var ALLOWED_METHODS = []string{"GET", "POST", "PUT"}
+var ALLOWED_METHODS = map[string]bool{
+	"GET":  true,
+	"PUT":  true,
+	"POST": true,
+}
+
+var ErrMissingTarget = errors.New("Missing Target")
+var ErrMethodNotAllowed = errors.New("Method not allowed")
+var ErrMissingSeperator = errors.New("Target is missing seperator")
 
 type Target struct {
 	Method string
@@ -22,18 +30,18 @@ type Target struct {
 func ConvertToTarget(inc string) (*Target, error) {
 
 	if inc == "" {
-		return nil, fmt.Errorf("Missing target")
+		return nil, fmt.Errorf("Missing target, %w", ErrMissingTarget)
 	}
 
 	if !strings.Contains(inc, TARGET_SEPERATOR) {
-		return nil, fmt.Errorf("Invalid target, missing " + TARGET_SEPERATOR)
+		return nil, fmt.Errorf("Invalid target, missing %s, %w", TARGET_SEPERATOR, ErrMissingSeperator)
 	}
 
 	method := strings.Split(inc, TARGET_SEPERATOR)[0]
 	url := strings.Join(strings.Split(inc, TARGET_SEPERATOR)[1:], TARGET_SEPERATOR)
 
-	if !slices.Contains(ALLOWED_METHODS, method) {
-		return nil, fmt.Errorf("Method %s, is not accepted", method)
+	if _, found := ALLOWED_METHODS[method]; !found {
+		return nil, fmt.Errorf("Method %s, is not accepted %w", method, ErrMethodNotAllowed)
 	}
 
 	return &Target{

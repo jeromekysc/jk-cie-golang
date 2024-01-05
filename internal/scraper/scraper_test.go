@@ -12,8 +12,9 @@ import (
 func TestConvertToTarget(t *testing.T) {
 
 	tests := []struct {
-		input    string
-		expected *Target
+		input     string
+		expected  *Target
+		expectErr error
 	}{
 		{
 			input: "GET|https:/www.google.com",
@@ -23,16 +24,19 @@ func TestConvertToTarget(t *testing.T) {
 			},
 		},
 		{
-			input:    "DELETE|https:/www.google.com",
-			expected: nil,
+			input:     "FOOBAR|https:/www.google.com",
+			expected:  nil,
+			expectErr: ErrMethodNotAllowed,
 		},
 		{
-			input:    "https:/www.google.com",
-			expected: nil,
+			input:     "https:/www.google.com",
+			expected:  nil,
+			expectErr: ErrMissingSeperator,
 		},
 		{
-			input:    "",
-			expected: nil,
+			input:     "",
+			expected:  nil,
+			expectErr: ErrMissingTarget,
 		},
 	}
 
@@ -41,9 +45,9 @@ func TestConvertToTarget(t *testing.T) {
 		t.Run("Testing "+tc.input, func(t *testing.T) {
 			target, err := ConvertToTarget(tc.input)
 
-			if tc.expected == nil {
-				assert.NotNil(t, err)
-			}
+			assert.ErrorIs(t, err, tc.expectErr)
+
+			// if err != nil && errors.Is(err, ErrMissingTarget) && err.()
 
 			assert.Equal(
 				t,
