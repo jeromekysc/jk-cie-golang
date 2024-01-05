@@ -4,6 +4,9 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/safetyculture/ci-golang/internal/scraper"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +22,26 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return scraper.Scrape(cmd, args)
+
+		inc, err := cmd.Flags().GetStringSlice("target")
+
+		if err != nil {
+			return fmt.Errorf("error loading targets, %s", err)
+		}
+		targets := []scraper.Target{}
+
+		for _, v := range inc {
+			target, err := scraper.ConvertToTarget(v)
+
+			if err != nil {
+				fmt.Printf("error to convert this target")
+				continue
+			}
+
+			targets = append(targets, *target)
+		}
+
+		return scraper.Scrape(os.Stdout, targets)
 	},
 }
 
